@@ -44,7 +44,7 @@ void KobukiNavigationStatechart(
     static robotState_t           unpausedState = DRIVE;            // state history for pause region
     static int32_t                distanceAtManeuverStart = 0;    // distance robot had travelled when a maneuver begins, in mm
     static int32_t                angleAtManeuverStart = 0;        // angle through which the robot had turned when a maneuver begins, in deg
-    static int32_t                acceleromterZ = 0;       // accelerometer reading for Z at the very
+    static int32_t                accelerometerZ = 0;       // accelerometer reading for Z at the very
     
     // outputs
     int16_t                       leftWheelSpeed = 0;                // speed of the left wheel, in mm/s
@@ -62,7 +62,7 @@ void KobukiNavigationStatechart(
     static int16_t              avoided = 0;                    // registering obstacle avoidance
     
     // sensor thresholds
-    int32_t                     sensorDiff = 0.05;               // 5 percent off from given value
+    float                     sensorDiff = 0.05;               // 5 percent off from given value
     
     //*****************************************************
     // state data - process inputs                        *
@@ -87,8 +87,8 @@ void KobukiNavigationStatechart(
                 else{
                 }
                 state = UNPAUSE_WAIT_BUTTON_PRESS; // place into pause state
-                acceleromterZ = accelAxes.z;
-                nohill = 1; // default start assuming flat ground
+                accelerometerZ = accelAxes.z;
+                flat = 1; // default start assuming flat ground
                 break;
             case PAUSE_WAIT_BUTTON_RELEASE:
                 // remain in this state until released before detecting next press
@@ -127,7 +127,11 @@ void KobukiNavigationStatechart(
              || sensors.bumps_wheelDrops.bumpCenter
              || sensors.cliffLeft
              || sensors.cliffRight
-             || sensors.cliffCenter){
+             || sensors.cliffCenter
+             // hill climb states
+             || state == ROTATE_LEFT
+             || state == ROTATE_RIGHT
+             || state == TURNAROUND){
         
         // registering which sensor is triggered - although multiple sensors? L + R + C?
         if (sensors.bumps_wheelDrops.bumpRight || sensors.cliffRight) {
@@ -208,6 +212,22 @@ void KobukiNavigationStatechart(
                     distanceAtManeuverStart = netDistance;
                 }
                 break;
+            case ROTATE_LEFT:
+            case ROTATE_RIGHT:
+                if (abs(accelAxes.y) <= sensorDiff) {
+                    angleAtManeuverStart = netAngle;
+                    distanceAtManeuverStart = netDistance;
+                    state = DRIVE;
+                } // otherwise remain rotating until fixed
+                break;
+            case TURNAROUND:
+                // turning around completely after hitting wall keeping under 180 degrees turn
+                if (abs(netAngle - angleAtManeuverStart) >= 179) {
+                    angleAtManeuverStart = netAngle;
+                    distanceAtManeuverStart = netDistance;
+                    state = DRIVE;
+                } // otherwise remain rotating until fixed
+                break;
             default:
                 angleAtManeuverStart = netAngle;
                 distanceAtManeuverStart = netDistance;
@@ -219,10 +239,7 @@ void KobukiNavigationStatechart(
     //*************************************
     // state transition - hill climb region      *
     //*************************************
-    else if (state = ROTATE_LEFT
-             || state = ROTATE_RIGHT
-             || state = TURNAROUND
-             || (abs(accelAxes.z - accelerometerZ) >= sensorDiff*accelerometerZ)
+    else if ((abs(accelAxes.z - accelerometerZ) >= sensorDiff*accelerometerZ)
              || abs(accelAxes.x) >= sensorDiff) {
         // branch with pause states and obstacle avoidance states
         switch (hillClimb) {
@@ -265,24 +282,6 @@ void KobukiNavigationStatechart(
                     hillClimb = 0;
                     state = STOP;
                 }
-                break;
-        }
-        switch (state) {
-            case ROTATE_LEFT:
-            case ROTATE_RIGHT:
-                if (abs(accelAxes.y) <= sensorDiff) {
-                    angleAtManeuverStart = netAngle;
-                    distanceAtManeuverStart = netDistance;
-                    state = DRIVE;
-                } // otherwise remain rotating until fixed
-                break;
-            case TURNAROUND:
-                // turning around completely after hitting wall keeping under 180 degrees turn
-                if (abs(netAngle - angleAtManeuverStart) >= 179) {
-                    angleAtManeuverStart = netAngle;
-                    distanceAtManeuverStart = netDistance;
-                    state = DRIVE;
-                } // otherwise remain rotating until fixed
                 break;
         }
     }
