@@ -1,0 +1,2 @@
+This is Version 1.70 of the CourseWare accompanying Jensen, Lee, and Seshia: An Introductory Lab in Embedded and Cyber-Physical Systems. 
+It includes files for the labs based on the iClebo Kobuki robotic platform, not for the iRobot Create.
