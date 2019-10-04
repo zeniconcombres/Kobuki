@@ -1,0 +1,76 @@
+% SETUP
+\documentclass[11pt]{article}
+\linespread{1.25}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx, amsmath, array, graphics, amssymb, epsfig, psfrag, geometry, alltt, subfiles, blindtext}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[export]{adjustbox}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{hyperref}
+\geometry{a4paper, top = 20mm, bottom = 20mm, left = 15mm, right = 15mm}
+
+% Headers
+\pagestyle{fancy}
+\fancyhf{}
+\chead{ELEN90066 Embedded Systems Design - Workshop 1 Prelab}
+\cfoot{\thepage}
+
+\begin{document}
+
+% Title
+\begin{center}
+\textbf{\Large{Workshop 1 Prelab}}\\
+YiLin Inez Zheng [702279], \\
+Workshop: Monday 3:15pm - 6:15pm, Due: 12/08/19  
+\end{center}
+
+\begin{enumerate}
+    \item %1
+    \begin{enumerate}
+        \item %a
+        Broadcom BCM2402
+        \item %b
+        x86
+        \item %c 
+        EEPROM 16.3kB
+        \item %d
+        Analog Devices ADXL330
+        \item %e
+        Bluetooth HID protocol 400kHz $\text{I}^2$C
+    \end{enumerate}
+    \item %2
+    \begin{enumerate}
+        \item %a
+        Command: \texttt{(a2) 0x11 0x50}\\
+        Payload: LED 1 - 0x10, LED 3 - 0x40\\
+        Report ID: Player LEDs - 0x11\\
+        Transaction header = Data Output: 0xa2
+        \item %b
+        Command: \texttt{(a2) 0x11 0x51}\\
+        Payload: LED 1 - 0x10, LED 3 - 0x40, Rumble motor on - 0x01
+        \item %c
+        Command: \texttt{(a2) 0x12 0x04 0x31}\\
+        Payload: Core Buttons and Accelerometer - 0x31\\
+        Report ID: Data reporting mode - 0x12\\
+        Transaction type = Output: 0xa2
+        \item %d
+        \texttt{0xa1} is the transaction header - Data Input
+    \end{enumerate}
+    \item %3
+    \begin{enumerate}
+        \item %a
+        \begin{equation*}
+            f(x) = ax + b
+        \end{equation*}
+        \item %b
+        Sensitivity in the accelerometer is $\frac{1.5}{3.6} = 0.417$V/g, ADXL330 bias is 1.5V typically for the three axes.
+        Mapping typical measurements of $\pm3.6$g to 0 - 3V.  
+        \begin{equation*}
+            f(x) = 0.417x + 1.5
+        \end{equation*}
+        \item %c
+        $a$ (V/g), $b$ (V), $f(x)$ (V), where V stands for voltage readings.
+    \end{enumerate}
+\end{enumerate}
+\end{document}
