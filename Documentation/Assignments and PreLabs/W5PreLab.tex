@@ -1,0 +1,60 @@
+% SETUP
+\documentclass[11pt]{article}
+\linespread{1.25}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx, amsmath, array, graphics, amssymb, epsfig, psfrag, geometry, alltt, subfiles, blindtext}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[export]{adjustbox}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{hyperref}
+\geometry{a4paper, top = 20mm, bottom = 20mm, left = 15mm, right = 15mm}
+
+% Headers
+\pagestyle{fancy}
+\fancyhf{}
+\chead{ELEN90066 Embedded Systems Design - Workshop 5 Prelab}
+\cfoot{\thepage}
+
+\begin{document}
+
+% Title
+\begin{center}
+\textbf{\Large{Workshop 5 Prelab}}\\
+YiLin Inez Zheng [702279], \\
+Workshop: Monday 3:15pm - 6:15pm, Due: 09/09/19  
+\end{center}
+
+\begin{enumerate}
+    \item %1
+    \begin{enumerate}
+        \item %a
+        Laying flat on the ground, positive $z$ axis is facing down.\\
+        $a_g = (0,0,g)$, $|a_g| = \sqrt{0^2 + 0^2 + g^2} = 1g$
+        \item %b
+        Essentially robot is facing up $\theta_1$ degrees, so the positive $x$ axis is facing towards the ground.\\
+        $a_g = (g\sin(\theta_1),0,g\cos(\theta_1))$
+        \begin{align*}
+            |a_g| &= \sqrt{(g\sin(\theta_1))^2 + 0^2 + (g\cos(\theta_1))^2}\\
+            &= \sqrt{g^2(\sin^2(\theta_1)+\cos^2(\theta_1))} = 1g
+        \end{align*}
+        \item %c
+        Like the situation in b) but the robot is turned so the $y$ axis is facing slightly down towards the ground as well.\\
+        $a_g = (g\sin(\theta_1)\cos(\theta),g\sin(\theta_1)\sin(\theta),g\cos(\theta_1))$.
+        \begin{align*}
+            |a_g| &= \sqrt{(g\sin(\theta_1)\cos(\theta))^2 + (g\sin(\theta_1)\sin(\theta))^2 + (g\cos(\theta_1))^2}\\
+            &= \sqrt{g^2(\sin^2(\theta_1)(\sin^2(\theta) + \cos^2(\theta))+\cos^2(\theta_1))}\\ 
+            &= \sqrt{g^2(\sin^2(\theta_1)+\cos^2(\theta_1))} = 1g
+        \end{align*}
+    \end{enumerate}
+    \item %2
+    \begin{enumerate}
+        \item %a
+        No they will not. The gravity experienced is proportional to the radial distance away from the earth's centre. $g \propto \frac{1}{r^2}$.
+        \item %b
+        Accelerometer of the robot measures technically the amount of force (i.e. acceleration) that "pushes"/keeps a weight off the ground). If the robot is accelerating faster that the gravitational acceleration, the accelerometer reading may be negative, or in the case of freefall, the accelerometer would read 0g. Therefore, movement of the robot influences the relative coordinate system due to rotation in moving and the reference frame, which the accelerometer readings are based off. 
+        \item %c
+        We don't want the reference frame of the accelerometer to be altered when measuring tilt as this would lead to very inaccurate readings. Acceleration of the robot should be kept less than $g$ or have some value offset the reading should acceleration on an inclined surface be greater than $g$.
+    \end{enumerate}
+\end{enumerate}
+\end{document}

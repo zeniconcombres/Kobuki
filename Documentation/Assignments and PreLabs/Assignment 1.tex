@@ -1,0 +1,111 @@
+% SETUP
+\documentclass[11pt]{article}
+\linespread{1.25}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx, amsmath, array, graphics, amssymb, epsfig, psfrag, geometry, alltt, subfiles, blindtext, enumitem, pdfpages, float}
+\usepackage[export]{adjustbox}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{hyperref}
+\geometry{a4paper, top = 20mm, bottom = 20mm, left = 15mm, right = 15mm}
+
+% Headers
+\pagestyle{fancy}
+\fancyhf{}
+\chead{ELEN90066 Embedded Systems Design - Assignment 1}
+\cfoot{\thepage}
+
+
+\begin{document}
+\includepdf{EngCSAss1.pdf}
+\clearpage
+\setcounter{page}{1}
+
+% Title
+\begin{center}
+\textbf{\Large{Assignment 1}}\\
+YiLin Inez Zheng [702279], \\
+Workshop: Monday 3:15pm - 6:15pm, Due: 26/08/19  
+\end{center}
+
+\section*{Chapter 7 - page 207}
+\subsection*{Exercise 2}
+\begin{enumerate}[label=\alph*)]
+    \item %a
+    Dynamic range = 100dB, precision $p = 20 \times 10^{-6}$Pa, $H$ is the sound pressure of the loudest sound a human can effectively discern.
+    \begin{align*}
+        D_{dB} &= 20\log_{10}\frac{H - L}{p}\\
+        10^5 &= \frac{H-0}{20 \times 10^{-6}}\\
+        \Rightarrow H &= \underline{2 \text{Pa}}
+    \end{align*}
+    \item %b
+    $n$ is the minimum number of bits required for an ADC
+    \begin{align*}
+        p &= \frac{H - L}{2^n}\\
+        \frac{2}{20 \times 10^{-6}} &= 2^n\\
+        n &= \frac{\log(1\times 10^{5})}{\log(2)}\\
+        \Rightarrow n &= 16.6 \approx \underline{17}
+    \end{align*}
+\end{enumerate}
+\subsection*{Exercise 3}
+\begin{enumerate}[label=\alph*)]
+    \item %a
+    You can measure bias $b$ by placing the accelerometer in a horizontal position and take the reading of $f(x)$. The corresponding proper acceleration $x$ at this point should be 0g. 
+    \item %b
+    Proportionality $a$ is measured through taking an extreme values of $f(x)$ and $x$ e.g. pointing the accelerometer down and up (aligning with gravity and aligning opposite to gravity) and finding a ratio of the difference $\frac{\Delta f(x)}{\Delta x}$.
+    \item %c
+    $f(x) = ax + b$\\
+    The affine function model will be able to accurately model linear or non-linear behaviour in a system within an operating range $L,H$. Outside of this range the affine model will no longer be valid due to sensor physical limitations and saturations.
+    \item %d
+    Rearranging equation from c), 
+    $x = \frac{f(x) - b}{a}$
+    \item %e
+    Each accelerometer is a different sensor of slightly varying specifications. This may be due from material differences that could lead to incoherence in behaviour and measurements.
+    \item %f
+    $b = 128$ the value of $f(x)$ when the proper acceleration is 0g, $a = \frac{255-1}{6} = 42.33$ using the difference of the $f(x)$ extremes in relation to proper acceleration extremity readings\\
+    $D_{dB} = 20\log_{10}\frac{H-L}{p} = 20\log_{10}254 = 48.0967$ using formula in Exercise 2a).
+\end{enumerate}
+
+\newpage
+\section*{Chapter 9 - page 257}
+\subsection*{Exercise 1}
+\begin{enumerate}[label=\alph*)]
+    \item %a
+    $(m,S,E,B) = (32,8,1,8)$, number of (cache) sets = 8, direct cache, block size = 8 bytes, address has 3 block offset bits, 3 set index bits and 26 tag bits. 8 bytes can fit 2 \texttt{int} as they are only 4 bytes each.\\
+    Every time a cache miss occurs, the entire cache line is filled i.e. 2 \texttt{int} values are grabbed and filled in. For \texttt{data[i+1]}, when \texttt{data[i]} fills in the cache, its value is already present and will be a cache hit.\\
+    In the second part of the code in line 13 with \texttt{data[i]*data[i]}, there will be no conflict misses as even though they are referring to the same cache line, the accessed blocks are the same and therefore, the cache value of \texttt{data[i]} will not be evicted at any time. With the values in the cache already filled in after the first loop, the second loop will all be cache hits.\\
+    Therefore, \underline{there will be 8 misses}.
+    \item %b
+    Similar logic to the previous question but due to the set size being 8, or that there are only 8 cache lines that fit 8 bytes each, the maximum number of \texttt{int} values the cache can hold will be 16. With N = 32, the first loop will already have 16 misses.\\
+    The second loop will have the same issue such that the cache is essentially 'refreshed' when starting at \texttt{data[0]} again and will also have 16 misses.\\
+    Therefore, \underline{there will be 32 misses}.  
+    \item %c
+    As each cache line will now only hold 4 bytes or 1 \texttt{int} value, each \texttt{data[i]} will need to access its own cache line. The first loop will fill all 16 cache lines (in the 8 sets of 2 lines) and will have 16 misses. The second loop will all be cache hits as all the variables are there.\\ 
+    \underline{16 misses}
+\end{enumerate}
+\subsection*{Exercise 3}
+\begin{enumerate}[label=\alph*)]
+    \item %a
+    \texttt{n} is a program variable = region C\\ 
+    \texttt{m} is a pointer variable and pointers are stored in the stack (or heap if available) = region D\\ 
+    \texttt{a} is a variable used only when the function is called i.e. on a stack = region D
+    \item %b
+    The code will run the function \texttt{foo} but the value passed in at address 0x0010 is 0, so the value of \texttt{n} will not be updated. This will result in giving a print screen output of \texttt{n = 0} and then the function will exit.
+    \item %c
+    The program will continue to run due to the recursive function \texttt{foo}. The stack will overflow and will not be cleared and memory will be occupied from region D down to region C and overwrite program and static variables due to no memory protection available.
+\end{enumerate}
+
+\newpage 
+\section*{Chapter 10 - page 289}
+\subsection*{Exercise 7}
+\begin{enumerate}[label=\alph*)]
+    \item %a
+    No, the ISR will not be able to update the value of \texttt{sensor1} while it is checking for the fault in \texttt{sensor1}. This is because the ISR would be be updating only the value of \texttt{sensor2} due to \texttt{flag = 0}.
+    \item %b
+    Yes, when the ISRs occurs twice in a row during a single while loop cycle the faulty value of the read in sensor would be overwritten before checked.\\ 
+    For example, it could happen when the else branch is carried out in line 21 and a spurious error occurs on \texttt{sensor2}. The code can only change the value of \texttt{sensor2} as it is checking for sensor 1's fault. If another ISR occurs and the value of \texttt{sensor2} returns to non faulty, the spurious error would not have been caught on display. Under the same logic, when detecting \texttt{sensor2} as faulty, \texttt{sensor1} will be only be updated.
+    \item %c
+    If the timer triggering the interrupt is set very fast that many ISRs are invoked before the main while loop is able to be executed, the code would never be checking for a faulty sensor.
+\end{enumerate}
+
+\end{document}

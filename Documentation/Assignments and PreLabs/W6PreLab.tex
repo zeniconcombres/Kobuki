@@ -1,0 +1,43 @@
+% SETUP
+\documentclass[11pt]{article}
+\linespread{1.25}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx, amsmath, array, graphics, amssymb, epsfig, psfrag, geometry, alltt, subfiles, blindtext}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[export]{adjustbox}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{hyperref}
+\geometry{a4paper, top = 20mm, bottom = 20mm, left = 15mm, right = 15mm}
+
+% Headers
+\pagestyle{fancy}
+\fancyhf{}
+\chead{ELEN90066 Embedded Systems Design - Workshop 6 Prelab}
+\cfoot{\thepage}
+
+\begin{document}
+
+% Title
+\begin{center}
+\textbf{\Large{Workshop 6 Prelab}}\\
+YiLin Inez Zheng [702279], \\
+Workshop: Monday 3:15pm - 6:15pm, Due: 16/09/19  
+\end{center}
+
+\begin{enumerate}
+    \item %1
+    Did exercises 1.5.3 previously in Workshop 4 PreLab. 
+    \item %2 
+    The statechart model in LabView is a UML (unified modelling language). With a UML it extends beyond the limitations of a traditional finite state machine such as being able to implement hierachical state machines at any level of depth or orthogonal regions. 
+    \item %3
+     "A region is a container for one or more states, a state is the condition that the statechart is in, and a transition is a means to move between states." \\
+     - National Instruments statechart tutorial http://www.ni.com/tutorial/7425/en/\\
+     A region must contain one or more intial pseudostates. it can be used to implement hierarchical state machines by placing a substate inside a region's container.\\
+     A state must have at least one or more transistion.\\
+     A transition is determined by triggers and guards. Triggers activate the transition for asynchronous state machines - a trigger by default is set to NULL. Guards are evaluated before executing the state action; the action is only executed if the guard evaluates to true. 
+    \item %4 
+    The arrow containing three open or closed cells is a transition. A transition has ports and transition nodes. The three cells represent the transition nodes describing the behaviour of the transition. The cells are the triggers, guard and action for that particular transition. If the respective fields are filled in under the Configure Transition dialogue box, the cell will light up as blue. If a field is left empty or NULL (e.g. trigger), the cell will be blank/white. Ports are the connections between states depicted by the arrow direction.
+\end{enumerate}
+
+\end{document}
