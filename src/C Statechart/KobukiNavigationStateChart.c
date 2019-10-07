@@ -87,7 +87,7 @@ void KobukiNavigationStatechart(
                 else{
                 }
                 state = UNPAUSE_WAIT_BUTTON_PRESS; // place into pause state
-                accelerometerZ = accelAxes.z;
+                accelerometerZ = accelAxes.z; // flat ground z axis reading
                 flat = 1; // default start assuming flat ground
                 break;
             case PAUSE_WAIT_BUTTON_RELEASE:
@@ -164,18 +164,12 @@ void KobukiNavigationStatechart(
             case REVERSE:
                 // move on to turning
                 if (abs(netDistance - distanceAtManeuverStart) >= 100){
-                    if (hillClimb && flat) {
-                        // after hitting the wall at the top of the hill
-                        state = TURNAROUND;
-                    } else {
-                        if (central || left){
+                    if (central || left){
                             // default is to turn right
                             state = TURN_RIGHT;
-                        }
-                        else {
+                    } else {
                             // left turn
                             state = TURN_LEFT;
-                        }
                     }
                     angleAtManeuverStart = netAngle;
                     distanceAtManeuverStart = netDistance;
@@ -199,12 +193,12 @@ void KobukiNavigationStatechart(
                 // turn back to original trajectory direction
                 if (abs(netDistance - distanceAtManeuverStart) >= 100){
                     if (central || left){
-                        // default is to turn right
+                        // turned right now turning back left
                         avoided = 1;
                         state = TURN_LEFT;
                     }
                     else {
-                        // left turn
+                        // turned left now turning back right
                         avoided = 1;
                         state = TURN_RIGHT;
                     }
@@ -220,14 +214,15 @@ void KobukiNavigationStatechart(
                     state = DRIVE;
                 } // otherwise remain rotating until fixed
                 break;
-            case TURNAROUND:
-                // turning around completely after hitting wall keeping under 180 degrees turn
-                if (abs(netAngle - angleAtManeuverStart) >= 179) {
-                    angleAtManeuverStart = netAngle;
-                    distanceAtManeuverStart = netDistance;
-                    state = DRIVE;
-                } // otherwise remain rotating until fixed
-                break;
+// Shouldn't need this for going up and down hills. Commented out //
+//            case TURNAROUND:
+//                // turning around completely after hitting wall keeping under 180 degrees turn
+//                if (abs(netAngle - angleAtManeuverStart) >= 180) {
+//                    angleAtManeuverStart = netAngle;
+//                    distanceAtManeuverStart = netDistance;
+//                    state = DRIVE;
+//                } // otherwise remain rotating until fixed
+//                break;
             default:
                 angleAtManeuverStart = netAngle;
                 distanceAtManeuverStart = netDistance;
@@ -260,7 +255,7 @@ void KobukiNavigationStatechart(
                 if (flat == 1 && accelAxes.x <= sensorDiff) {
                     // going down
                     flat = 0;
-                    hillClimb = -1;
+                    hillClimb = 2;
                     if (accelAxes.y >= sensorDiff) {
                         // robot needs to turn left to correct right down slant
                         state = ROTATE_LEFT;
@@ -270,17 +265,17 @@ void KobukiNavigationStatechart(
                     }
                 } else if (abs(accelAxes.z - accelerometerZ) <= sensorDiff*accelerometerZ
                            && abs(accelAxes.x) <= sensorDiff) {
-                    // when we reach hill top the next thing we bump will be the wall - turn!
+                    // when we reach hill top we will then go down a ramp
                     flat = 1;
                 }
                 break;
-            case -1:
+            case 2:
                 // robot stops after reaching ground from hill descent
                 if (abs(accelAxes.z - accelerometerZ) <= sensorDiff*accelerometerZ
                     && abs(accelAxes.x) <= sensorDiff) {
                     flat = 1;
                     hillClimb = 0;
-                    state = STOP;
+                    state = PAUSE_WAIT_BUTTON_RELEASE; // changed this to PAUSE for testing purposes
                 }
                 break;
         }
