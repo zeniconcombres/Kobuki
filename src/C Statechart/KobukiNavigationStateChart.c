@@ -68,7 +68,6 @@ void KobukiNavigationStatechart(
     //*****************************************************
     
     // ***** NOTES from code: *****
-    // maybe we should initialise the accelerometer Z axis readings at the start? - kind of have done this
     // could consider fine tuning the side (R/L) sensors because they never seem to be benefitting from a 90 degrees turn
     // for object avoidance? especially if there are things on the hill
     
@@ -232,7 +231,9 @@ void KobukiNavigationStatechart(
     //*************************************
     // state transition - hill climb region      *
     //*************************************
-    else if ((abs(accelAxes.x) >= sensorDiff) || (abs(accelAxes.y) >= sensorDiff)) {
+    else if ((fabs(accelAxes.x) >= sensorDiff)
+             || (fabs(accelAxes.y) >= sensorDiff)
+             || hillClimb) {
         // branch with pause states and obstacle avoidance states
         switch (hillClimb) {
             case 0:
@@ -249,7 +250,8 @@ void KobukiNavigationStatechart(
                 break;
             case 1:
                 // on the hill transition to hill top or hill top to coming down
-                if (flat == 1 && accelAxes.x <= sensorDiff) {
+                // this is unreachable
+                if (flat == 1 && fabs(accelAxes.x) <= sensorDiff) {
                     // going down
                     flat = 0;
                     hillClimb = 2;
@@ -260,7 +262,7 @@ void KobukiNavigationStatechart(
                         // robot needs to turn right to correct left down slant
                         state = ROTATE_RIGHT;
                     }
-                } else if ((abs(accelAxes.x) <= sensorDiff) && (abs(accelAxes.x) <= sensorDiff)) {
+                } else if ((fabs(accelAxes.x) <= sensorDiff) && (fabs(accelAxes.x) <= sensorDiff)) {
                     // when we reach hill top we will then go down a ramp
                     // skeptical about the && used for X and Y
                     flat = 1;
@@ -271,7 +273,7 @@ void KobukiNavigationStatechart(
                 if (abs(accelAxes.x) <= sensorDiff) {
                     flat = 1;
                     hillClimb = 0;
-                    state = FINISH; //PAUSE_WAIT_BUTTON_RELEASE; // changed this to PAUSE for testing purposes
+                    state = STOP; //PAUSE_WAIT_BUTTON_RELEASE; // changed this to PAUSE for testing purposes
                 }
                 break;
         }
