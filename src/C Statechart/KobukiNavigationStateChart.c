@@ -44,7 +44,6 @@ void KobukiNavigationStatechart(
     static robotState_t           unpausedState = DRIVE;            // state history for pause region
     static int32_t                distanceAtManeuverStart = 0;    // distance robot had travelled when a maneuver begins, in mm
     static int32_t                angleAtManeuverStart = 0;        // angle through which the robot had turned when a maneuver begins, in deg
-    static int32_t                accelerometerZ = 0;       // accelerometer reading for Z at the very
     
     // outputs
     int16_t                       leftWheelSpeed = 0;                // speed of the left wheel, in mm/s
@@ -62,7 +61,7 @@ void KobukiNavigationStatechart(
     static int16_t              avoided = 0;                    // registering obstacle avoidance
     
     // sensor thresholds
-    float                     sensorDiff = 0.05;               // 5 percent off from given value
+    float                     sensorDiff = 0.01;               // 5 percent off from given value
     
     //*****************************************************
     // state data - process inputs                        *
@@ -87,7 +86,6 @@ void KobukiNavigationStatechart(
                 else{
                 }
                 state = UNPAUSE_WAIT_BUTTON_PRESS; // place into pause state
-                accelerometerZ = accelAxes.z; // flat ground z axis reading
                 flat = 1; // default start assuming flat ground
                 break;
             case PAUSE_WAIT_BUTTON_RELEASE:
@@ -234,8 +232,7 @@ void KobukiNavigationStatechart(
     //*************************************
     // state transition - hill climb region      *
     //*************************************
-    else if ((abs(accelAxes.z - accelerometerZ) >= sensorDiff*accelerometerZ)
-             || abs(accelAxes.x) >= sensorDiff) {
+    else if ((abs(accelAxes.x) >= sensorDiff) || (abs(accelAxes.y) >= sensorDiff)) {
         // branch with pause states and obstacle avoidance states
         switch (hillClimb) {
             case 0:
@@ -263,19 +260,18 @@ void KobukiNavigationStatechart(
                         // robot needs to turn right to correct left down slant
                         state = ROTATE_RIGHT;
                     }
-                } else if (abs(accelAxes.z - accelerometerZ) <= sensorDiff*accelerometerZ
-                           && abs(accelAxes.x) <= sensorDiff) {
+                } else if ((abs(accelAxes.x) <= sensorDiff) && (abs(accelAxes.x) <= sensorDiff)) {
                     // when we reach hill top we will then go down a ramp
+                    // skeptical about the && used for X and Y
                     flat = 1;
                 }
                 break;
             case 2:
                 // robot stops after reaching ground from hill descent
-                if (abs(accelAxes.z - accelerometerZ) <= sensorDiff*accelerometerZ
-                    && abs(accelAxes.x) <= sensorDiff) {
+                if (abs(accelAxes.x) <= sensorDiff) {
                     flat = 1;
                     hillClimb = 0;
-                    state = PAUSE_WAIT_BUTTON_RELEASE; // changed this to PAUSE for testing purposes
+                    state = FINISH; //PAUSE_WAIT_BUTTON_RELEASE; // changed this to PAUSE for testing purposes
                 }
                 break;
         }
