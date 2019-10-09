@@ -11,6 +11,47 @@
 #define TRANSITIONS(num) num, (transition_t[num])
 #define ACTIONS(num)  num, (action_t[num])
 
+state_t groundState = {
+	TRANSITIONS(1) {
+		{&inclineDetected, &ascendingState}
+	},
+	NULL
+};
+
+state_t ascendingState = {
+	TRANSITIONS(1) {
+		{&flatDetected, &topState}
+	},
+	NULL
+};
+
+state_t topState = {
+	TRANSITIONS(1) {
+		{&inclineDetected, &descendingState}
+	},
+	NULL
+};
+
+state_t descendingState = {
+	TRANSITIONS(1) {
+		{&flatDetected, &endState, ACTIONS(1){ {&resetAll} } }
+	},
+	NULL
+};
+
+state_t endState = {
+	0,
+	NULL,
+	NULL
+};
+
+state_controller_t hillStateController = {
+	&groundState,
+	NULL,
+	{ STOP, 0, 0, CENTRE },
+	ACTIONS(1) { {&forward} }
+};
+
 
 state_t driveState = {
 	TRANSITIONS(3){ 
@@ -18,7 +59,7 @@ state_t driveState = {
 		{&obstacleDetectedRight, &reverseState, ACTIONS(3) { {&reverse}, {&resetDistance}, {&setObstacleLocRight} } },
 		{&obstacleDetected,		 &reverseState, ACTIONS(3) { {&reverse}, {&resetDistance}, {&setObstacleLocCentre} } }
 	},
-	NULL
+	&hillStateController
 };
 
 state_t reverseState = {
@@ -37,14 +78,15 @@ state_t turnAwayState = {
 
 state_t turnBackState = {
 	TRANSITIONS(1){
-		{&angleReached, &driveAvoidState, ACTIONS(2) { {&forward}, {&resetDistance} } }
+		{&angleReached, &driveState, ACTIONS(2) { {&forward}, {&resetDistance} } }
 	},
 	NULL
 };
 
 state_t driveAvoidState = {
-	TRANSITIONS(1) {
-		{&distanceReached, &driveState, ACTIONS(2) { {&rotateToOrig},{ &resetAngle } } }
+	TRANSITIONS(2) {
+		{&distanceReached, &turnBackState, ACTIONS(2) { {&rotateToOrig},{ &resetAngle } } },
+		{&obstacleDetected, &reverseState, ACTIONS(2) { {&reverse}, {&resetDistance} } } //TODO: define behaviour when find a corner
 	},
 	NULL
 };
@@ -52,26 +94,29 @@ state_t driveAvoidState = {
 state_controller_t avoidanceController = {
 	&driveState,
 	NULL,
-	{ STOP, 0, 0 },
+	{ STOP, 0, 0, CENTRE },
 	ACTIONS(1) { {&forward} }
 };
 
 state_t unPauseState = {
 	TRANSITIONS(1){ 
-		{&pauseButtonPressed, &pauseState, ACTIONS(1){ {&stop } } }
+		{&pauseButtonPressed, &pauseState, ACTIONS(1){ {&stop} } }
 	},
 	&avoidanceController,
 };
 
 state_t pauseState = {
-	TRANSITIONS(1){ {&pauseButtonPressed, &unPauseState} },
+	TRANSITIONS(2){		
+		{&pauseButtonPressed, &unPauseState},
+		{&resetButtonPressed, &pauseState, ACTIONS(1){ {&resetAll} }}
+	},
 	NULL
 };
 
 state_controller_t mainController = {
 	&pauseState,
 	NULL,
-	{STOP, 0, 0},
+	{STOP, 0, 0, CENTRE},
 	NULL
 };
 
@@ -96,11 +141,9 @@ void KobukiNavigationStatechart(
                                 int16_t * const               pLeftWheelSpeed,
                                 const bool                    isSimulator
                                 ){
-	const system_t system = { &variables, netDistance, netAngle, sensors, accelAxes };
+
+	const system_t system = { &variables, netDistance, netAngle, sensors, calculateIncline(&accelAxes), calculateAngle(&accelAxes)};
 	controlSequence(&mainController, &system);
-	//current_state->onStart();
-	//current_state->eachRound();
-	//current_state->transitions.
 
 	//set wheel speeds
 	drive(variables.driveMode, pRightWheelSpeed, pLeftWheelSpeed);
@@ -142,6 +185,18 @@ void controlSequence(state_controller_t * controller, const system_t * system)
 	}
 	//save state
 	controller->variables = *system->variables;
+}
+
+void resetAll(const system_t * system)
+{
+	resetController(&avoidanceController);
+	resetController(&mainController);
+	resetController(&hillStateController);
+}
+
+void resetController(state_controller_t * controller)
+{
+	controller->currentState = NULL;
 }
 
 
@@ -273,6 +328,35 @@ void stop(const system_t * system)
 {
 	system->variables->driveMode = STOP;
 }
+
+bool inclineIsFoward(const system_t * system)
+{
+	return fabs(system->angle) < 0.1;
+}
+
+bool inclineDetected(const system_t * system)
+{
+	return fabs(system->incline) > 0.05;
+}
+
+bool flatDetected(const system_t * system)
+{
+	return fabs(system->incline) < 0.04;
+}
+
+double calculateIncline(const accelerometer_t * acc)
+{
+	double x = acc->x;
+	double y = acc->y;
+	double z = acc->z;
+	return acos(z / (sqrt(x*x + y*y + z*z)));
+}
+
+double calculateAngle(const accelerometer_t * acc)
+{
+	return atan2(acc->x, acc->y);
+}
+
 
 
 void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL)
