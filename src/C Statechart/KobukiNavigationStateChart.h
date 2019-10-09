@@ -104,6 +104,8 @@ void rotateToOrig(const system_t * system);
 
 bool angleReached(const system_t * system);
 bool distanceReached(const system_t * system);
+bool inclineIsRight(const system_t * system);
+bool inclineIsLeft(const system_t * system);
 bool inclineIsFoward(const system_t * system);
 bool inclineDetected(const system_t * system);
 bool flatDetected(const system_t * system);
@@ -121,9 +123,10 @@ void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL);
 //hill states
 state_t groundState;
 state_t ascendingState;
-state_t adjustDirState;
+state_t adjustAscState;
 state_t topState;
 state_t descendingState;
+state_t adjustDesState;
 state_t endState;
 
 //avoidance states

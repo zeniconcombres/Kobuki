@@ -19,8 +19,17 @@ state_t groundState = {
 };
 
 state_t ascendingState = {
+	TRANSITIONS(3) {
+		{&flatDetected, &topState},
+		{&inclineIsLeft, &adjustAscState, ACTIONS(1){ {&rotateLeft} }},
+		{&inclineIsRight, &adjustAscState, ACTIONS(1){ {&rotateRight} }}
+	},
+	NULL
+};
+
+state_t adjustAscState = {
 	TRANSITIONS(1) {
-		{&flatDetected, &topState}
+		{&inclineIsFoward, &ascendingState, ACTIONS(1){ {&forward}} }
 	},
 	NULL
 };
@@ -33,8 +42,17 @@ state_t topState = {
 };
 
 state_t descendingState = {
+	TRANSITIONS(3) {
+		{&flatDetected, &endState, ACTIONS(1){ {&resetAll} } },
+		{&inclineIsLeft, &adjustDesState, ACTIONS(1){ {&rotateLeft} }},
+		{&inclineIsRight, &adjustDesState, ACTIONS(1){ {&rotateRight} } }
+	},
+	NULL
+};
+
+state_t adjustDesState = {
 	TRANSITIONS(1) {
-		{&flatDetected, &endState, ACTIONS(1){ {&resetAll} } }
+		{&inclineIsFoward, &descendingState, ACTIONS(1){ {&forward}} }
 	},
 	NULL
 };
@@ -327,6 +345,16 @@ void rotateLeft(const system_t * system)
 void stop(const system_t * system)
 {
 	system->variables->driveMode = STOP;
+}
+
+bool inclineIsLeft(const system_t * system)
+{
+	return system->angle < -0.25;
+}
+
+bool inclineIsRight(const system_t * system)
+{
+	return system->angle > 0.25;
 }
 
 bool inclineIsFoward(const system_t * system)
