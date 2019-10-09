@@ -8,41 +8,44 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define TRANSITIONS(num) (transition_t[num])
-#define ACTIONS(num)  (action_t[num])
+#define TRANSITIONS(num) num, (transition_t[num])
+#define ACTIONS(num)  num, (action_t[num])
 
 
 state_t driveState = {
-	1,
-	TRANSITIONS(1){ 
-		{&obstacleDetected, &reverseState, 2, ACTIONS(2) { {&reverse}, {&resetDistance} } }
+	TRANSITIONS(3){ 
+		{&obstacleDetectedLeft,  &reverseState, ACTIONS(3) { {&reverse}, {&resetDistance}, {&setObstacleLocLeft} } },
+		{&obstacleDetectedRight, &reverseState, ACTIONS(3) { {&reverse}, {&resetDistance}, {&setObstacleLocRight} } },
+		{&obstacleDetected,		 &reverseState, ACTIONS(3) { {&reverse}, {&resetDistance}, {&setObstacleLocCentre} } }
 	},
 	NULL
 };
 
 state_t reverseState = {
-	1,
 	TRANSITIONS(1){
-		{&distanceReached, &turnLeftState, 2, ACTIONS(2) { {&rotateLeft}, {&resetAngle} } }
+		{&distanceReached, &turnAwayState, ACTIONS(2) { {&rotateToAvoid}, {&resetAngle} } }
 	},
 	NULL
 };
 
-state_t turnRightState = {
-	0,
-	NULL,
+state_t turnAwayState = {
+	TRANSITIONS(1){
+		{&angleReached, &driveAvoidState, ACTIONS(2) { {&forward}, {&resetDistance} } }
+	},
 	NULL
 };
 
-state_t turnLeftState = {
-	0,
-	NULL,
+state_t turnBackState = {
+	TRANSITIONS(1){
+		{&angleReached, &driveAvoidState, ACTIONS(2) { {&forward}, {&resetDistance} } }
+	},
 	NULL
 };
 
 state_t driveAvoidState = {
-	0,
-	NULL,
+	TRANSITIONS(1) {
+		{&distanceReached, &driveState, ACTIONS(2) { {&rotateToOrig},{ &resetAngle } } }
+	},
 	NULL
 };
 
@@ -50,20 +53,17 @@ state_controller_t avoidanceController = {
 	&driveState,
 	NULL,
 	{ STOP, 0, 0 },
-	1,
 	ACTIONS(1) { {&forward} }
 };
 
 state_t unPauseState = {
-	1,
 	TRANSITIONS(1){ 
-		{&pauseButtonPressed, &pauseState, 1, ACTIONS(1){ {&stop } } }
+		{&pauseButtonPressed, &pauseState, ACTIONS(1){ {&stop } } }
 	},
 	&avoidanceController,
 };
 
 state_t pauseState = {
-	1,
 	TRANSITIONS(1){ {&pauseButtonPressed, &unPauseState} },
 	NULL
 };
@@ -72,7 +72,6 @@ state_controller_t mainController = {
 	&pauseState,
 	NULL,
 	{STOP, 0, 0},
-	0,
 	NULL
 };
 
@@ -80,7 +79,8 @@ state_controller_t mainController = {
 variables_t variables = {
 	STOP,
 	0,
-	0
+	0,
+	CENTRE
 };
 
 #define DEG_PER_RAD            (180.0 / M_PI)        // degrees per radian
@@ -157,13 +157,13 @@ void changeState()
 
 bool distanceReached(const system_t * system)
 {
-	return fabs(system->netDistance - system->variables->distance) > 100;
+	return abs(system->netDistance - system->variables->distance) > 100;
 }
 
 
 bool angleReached(const system_t * system)
 {
-	return fabs(system->netAngle - system->variables->angle) > M_PI_2;
+	return abs(system->netAngle - system->variables->angle) > 90;
 }
 
 
@@ -200,6 +200,21 @@ bool obstacleDetected(const system_t * system)
 			system->sensors.bumps_wheelDrops.bumpCenter;
 }
 
+void setObstacleLocLeft(const system_t * system)
+{
+	system->variables->obstacleLoc = LEFT;
+}
+
+void setObstacleLocRight(const system_t * system)
+{
+	system->variables->obstacleLoc = RIGHT;
+}
+
+void setObstacleLocCentre(const system_t * system)
+{
+	system->variables->obstacleLoc = CENTRE;
+}
+
 void resetDistance(const system_t * system)
 {
 	system->variables->distance = system->netDistance;
@@ -218,6 +233,30 @@ void forward(const system_t * system)
 void reverse(const system_t * system)
 {
 	system->variables->driveMode = BACKWARD;
+}
+
+void rotateToAvoid(const system_t * system)
+{
+	if (system->variables->obstacleLoc == LEFT)
+	{
+		rotateRight(system);
+	}
+	else
+	{
+		rotateLeft(system);
+	}
+}
+
+void rotateToOrig(const system_t * system)
+{
+	if (system->variables->obstacleLoc == LEFT)
+	{
+		rotateLeft(system);
+	}
+	else
+	{
+		rotateRight(system);
+	}
 }
 
 void rotateRight(const system_t * system)
