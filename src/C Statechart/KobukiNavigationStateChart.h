@@ -12,6 +12,12 @@ typedef enum {
 	STOP
 }drive_mode_t;
 
+typedef struct {
+	drive_mode_t driveMode;
+	int32_t		 distance;
+	int32_t      angle;
+}variables_t;
+
 /// Architecture-independent C Statechart.
 void KobukiNavigationStatechart(
 	const int16_t 				maxWheelSpeed,
@@ -25,6 +31,7 @@ void KobukiNavigationStatechart(
 	);
 
 typedef struct {
+	variables_t *			    variables;
 	const int32_t 				netDistance;
 	const int32_t 				netAngle;
 	const KobukiSensors_t		sensors;
@@ -32,22 +39,18 @@ typedef struct {
 } system_t;
 
 typedef struct {
-	int16_t * wheel;
-	int32_t speed;
+	void(*actionFunc)(const system_t *);
 } action_t;
+
+
+struct state;
+struct state_controller;
 
 typedef struct {
 	bool(*triggerFunc)(const system_t *);
-	const drive_mode_t drive_mode;
-//	const size_t  numActions;
-//	const action_t * actions;
-} trigger_t;
-
-struct state;
-
-typedef struct {
-	const trigger_t * trig;
 	const struct state * newState;
+	const size_t  numActions;
+	const action_t * actions;
 } transition_t;
 
 typedef struct state{
@@ -56,11 +59,34 @@ typedef struct state{
 	//void * stateData;
 	size_t numTransitions;
 	transition_t* transitions;
+	struct state_controller * nestedStateController;
 }state_t;
+
+typedef struct state_controller{
+	const state_t * startState;
+	state_t * currentState;
+	variables_t  variables;
+	const size_t  numActions;
+	const action_t * initialActions;
+}state_controller_t;
+
+
+void controlSequence(const state_controller_t * controller, const system_t * system);
 
 void orientStart();
 
 void changeState();
+
+void resetDistance(const system_t * system);
+void resetAngle(const system_t * system);
+
+void stop(const system_t * system);
+void forward(const system_t * system);
+void reverse(const system_t * system);
+void rotateLeft(const system_t * system);
+void rotateRight(const system_t * system);
+
+bool distanceReached(const system_t * system);
 
 bool resetButtonPressed(const system_t * system);
 bool pauseButtonPressed(const system_t * system);
@@ -69,6 +95,17 @@ bool obstacleDetected(const system_t * system);
 bool obstacleDetectedLeft(const system_t * system);
 bool obstacleDetectedRight(const system_t * system);
 
-void drive(drive_mode_t driveMode);
+void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL);
+
+//avoidance states
+state_t driveState;
+state_t reverseState;
+state_t turnRightState;
+state_t turnLeftState;
+state_t driveAvoidState;
+
+//pause states
+state_t pauseState;
+state_t unPauseState;
 
 #endif // IROBOTNAVIGATIONSTATECHART_H_
