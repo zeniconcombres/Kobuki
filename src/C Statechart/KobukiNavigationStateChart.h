@@ -23,6 +23,7 @@ typedef struct {
 	int32_t		 distance;
 	int32_t      angle;
 	obstacle_loc_t obstacleLoc;
+	accelerometer_t offsets;
 }variables_t;
 
 /// Architecture-independent C Statechart.
@@ -42,6 +43,7 @@ typedef struct {
 	const int32_t 				netDistance;
 	const int32_t 				netAngle;
 	const KobukiSensors_t		sensors;
+	const accelerometer_t		acc;
 	const double				incline;
 	const double				angle;
 } system_t;
@@ -92,6 +94,7 @@ void setObstacleLocRight(const system_t * system);
 void setObstacleLocCentre(const system_t * system);
 void resetDistance(const system_t * system);
 void resetAngle(const system_t * system);
+void zeroAxes(const system_t * system);
 double calculateIncline(const accelerometer_t * acc);
 double calculateAngle(const accelerometer_t * acc);
 void stop(const system_t * system);
