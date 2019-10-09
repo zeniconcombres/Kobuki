@@ -11,38 +11,77 @@
 #define TRANSITIONS(num) (transition_t[num])
 #define ACTIONS(num)  (action_t[num])
 
-//const state_t state = {
-//	&orientStart,
-//	NULL,
-//	NULL,
-//	1,
-//	TRIGGERS(1){ 10, 1, ACTIONS(1){ {1,1}}}
-//};
 
-const trigger_t pauseTrigger = {
-	&pauseButtonPressed,
-	STOP
+state_t driveState = {
+	1,
+	TRANSITIONS(1){ 
+		{&obstacleDetected, &reverseState, 2, ACTIONS(2) { {&reverse}, {&resetDistance} } }
+	},
+	NULL
 };
 
-const trigger_t unPauseTrigger = {
-	&pauseButtonPressed,
-	FORWARD
+state_t reverseState = {
+	1,
+	TRANSITIONS(1){
+		{&distanceReached, &turnLeftState, 2, ACTIONS(2) { {&rotateLeft}, {&resetAngle} } }
+	},
+	NULL
 };
-state_t pauseState;
+
+state_t turnRightState = {
+	0,
+	NULL,
+	NULL
+};
+
+state_t turnLeftState = {
+	0,
+	NULL,
+	NULL
+};
+
+state_t driveAvoidState = {
+	0,
+	NULL,
+	NULL
+};
+
+state_controller_t avoidanceController = {
+	&driveState,
+	NULL,
+	{ STOP, 0, 0 },
+	1,
+	ACTIONS(1) { {&forward} }
+};
+
 state_t unPauseState = {
 	1,
-	TRANSITIONS(1){ {&pauseTrigger, &pauseState} }
+	TRANSITIONS(1){ 
+		{&pauseButtonPressed, &pauseState, 1, ACTIONS(1){ {&stop } } }
+	},
+	&avoidanceController,
 };
 
 state_t pauseState = {
 	1,
-	TRANSITIONS(1){ {&unPauseTrigger, &unPauseState} }
+	TRANSITIONS(1){ {&pauseButtonPressed, &unPauseState} },
+	NULL
+};
+
+state_controller_t mainController = {
+	&pauseState,
+	NULL,
+	{STOP, 0, 0},
+	0,
+	NULL
 };
 
 
-state_t * current_state = &pauseState;
-int16_t speedL = 0;
-int16_t speedR = 0;
+variables_t variables = {
+	STOP,
+	0,
+	0
+};
 
 #define DEG_PER_RAD            (180.0 / M_PI)        // degrees per radian
 #define RAD_PER_DEG            (M_PI / 180.0)        // radians per degree
@@ -57,25 +96,52 @@ void KobukiNavigationStatechart(
                                 int16_t * const               pLeftWheelSpeed,
                                 const bool                    isSimulator
                                 ){
-	const system_t system = { netDistance, netAngle, sensors, accelAxes };
-	for (int i = 0; i < current_state->numTransitions; i++)
-	{
-		if (current_state->transitions[i].trig->triggerFunc(&system))
-		{
-			printf("making transition\n");
-			drive(current_state->transitions[i].trig->drive_mode);
-			current_state = current_state->transitions[i].newState;
-			break;
-		}
-	}
-
+	const system_t system = { &variables, netDistance, netAngle, sensors, accelAxes };
+	controlSequence(&mainController, &system);
 	//current_state->onStart();
 	//current_state->eachRound();
 	//current_state->transitions.
-	
+
 	//set wheel speeds
-	*pRightWheelSpeed = speedR;
-	*pLeftWheelSpeed = speedL;
+	drive(variables.driveMode, pRightWheelSpeed, pLeftWheelSpeed);
+}
+
+
+void controlSequence(state_controller_t * controller, const system_t * system)
+{
+	if (controller->currentState == NULL)
+	{
+		for (int j = 0; j < controller->numActions; j++)
+		{
+			controller->initialActions[j].actionFunc(system);
+		}
+		controller->currentState = controller->startState;
+	}
+	else
+	{
+		*system->variables = controller->variables;
+	}
+
+	const state_t * current_state = controller->currentState;
+	if (current_state->nestedStateController != NULL)
+	{		
+		controlSequence(current_state->nestedStateController, system);
+	}
+	for (int i = 0; i < current_state->numTransitions; i++)
+	{
+		if (current_state->transitions[i].triggerFunc(system))
+		{
+			const transition_t transition = current_state->transitions[i];
+			for (int j = 0; j < transition.numActions; j++)
+			{
+				transition.actions[j].actionFunc(system);
+			}
+			controller->currentState = transition.newState;
+			break;
+		}	
+	}
+	//save state
+	controller->variables = *system->variables;
 }
 
 
@@ -88,6 +154,18 @@ void changeState()
 {
 
 }
+
+bool distanceReached(const system_t * system)
+{
+	return fabs(system->netDistance - system->variables->distance) > 100;
+}
+
+
+bool angleReached(const system_t * system)
+{
+	return fabs(system->netAngle - system->variables->angle) > M_PI_2;
+}
+
 
 bool resetButtonPressed(const system_t * system)
 {
@@ -122,11 +200,47 @@ bool obstacleDetected(const system_t * system)
 			system->sensors.bumps_wheelDrops.bumpCenter;
 }
 
+void resetDistance(const system_t * system)
+{
+	system->variables->distance = system->netDistance;
+}
+
+void resetAngle(const system_t * system)
+{
+	system->variables->angle = system->netAngle;
+}
+
+void forward(const system_t * system)
+{
+	system->variables->driveMode = FORWARD;
+}
+
+void reverse(const system_t * system)
+{
+	system->variables->driveMode = BACKWARD;
+}
+
+void rotateRight(const system_t * system)
+{
+	system->variables->driveMode = ROTATE_RIGHT;
+}
+
+void rotateLeft(const system_t * system)
+{
+	system->variables->driveMode = ROTATE_LEFT;
+}
+
+void stop(const system_t * system)
+{
+	system->variables->driveMode = STOP;
+}
 
 
-void drive(drive_mode_t driveMode)
+void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL)
 {
 	const int16_t speed = 100;
+	int16_t speedR = 0;
+	int16_t speedL = 0;
 	switch (driveMode)
 	{
 	case FORWARD: 
@@ -147,4 +261,6 @@ void drive(drive_mode_t driveMode)
 	default:
 		speedL = speedR = 0;
 	}
+	*pSpeedR = speedR;
+	*pSpeedL = speedL;
 }
