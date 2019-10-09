@@ -66,8 +66,8 @@ state_t endState = {
 state_controller_t hillStateController = {
 	&groundState,
 	NULL,
-	{ STOP, 0, 0, CENTRE },
-	ACTIONS(1) { {&forward} }
+	{ STOP, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+	ACTIONS(2) { {&forward}, {&zeroAxes} }
 };
 
 
@@ -112,7 +112,7 @@ state_t driveAvoidState = {
 state_controller_t avoidanceController = {
 	&driveState,
 	NULL,
-	{ STOP, 0, 0, CENTRE },
+	{ STOP, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 	ACTIONS(1) { {&forward} }
 };
 
@@ -134,7 +134,7 @@ state_t pauseState = {
 state_controller_t mainController = {
 	&pauseState,
 	NULL,
-	{STOP, 0, 0, CENTRE},
+	{STOP, 0, 0, CENTRE, { 0.0, 0.0, 0.0 } },
 	NULL
 };
 
@@ -143,7 +143,8 @@ variables_t variables = {
 	STOP,
 	0,
 	0,
-	CENTRE
+	CENTRE,
+	{0.0, 0.0, 0.0}
 };
 
 #define DEG_PER_RAD            (180.0 / M_PI)        // degrees per radian
@@ -160,7 +161,7 @@ void KobukiNavigationStatechart(
                                 const bool                    isSimulator
                                 ){
 
-	const system_t system = { &variables, netDistance, netAngle, sensors, calculateIncline(&accelAxes), calculateAngle(&accelAxes)};
+	const system_t system = { &variables, netDistance, netAngle, sensors, accelAxes, calculateIncline(&accelAxes, &variables.offsets), calculateAngle(&accelAxes, &variables.offsets)};
 	controlSequence(&mainController, &system);
 
 	//set wheel speeds
@@ -364,7 +365,7 @@ bool inclineIsFoward(const system_t * system)
 
 bool inclineDetected(const system_t * system)
 {
-	return fabs(system->incline) > 0.05;
+	return fabs(system->incline) > 0.07;
 }
 
 bool flatDetected(const system_t * system)
@@ -372,17 +373,26 @@ bool flatDetected(const system_t * system)
 	return fabs(system->incline) < 0.04;
 }
 
-double calculateIncline(const accelerometer_t * acc)
+double calculateIncline(const accelerometer_t * acc, const accelerometer_t * offset)
 {
-	double x = acc->x;
-	double y = acc->y;
-	double z = acc->z;
+	double x = acc->x - offset->x;
+	double y = acc->y - offset->y;
+	double z = acc->z - offset->z;
 	return acos(z / (sqrt(x*x + y*y + z*z)));
 }
 
-double calculateAngle(const accelerometer_t * acc)
+double calculateAngle(const accelerometer_t * acc, const accelerometer_t * offset)
 {
-	return atan2(acc->x, acc->y);
+	double x = acc->x - offset->x;
+	double y = acc->y - offset->y;
+	return atan2(x, y);
+}
+
+void zeroAxes(const system_t * system)
+{
+	system->variables->offsets.x = system->acc.x;
+	system->variables->offsets.y = system->acc.y;
+	system->variables->offsets.z = 1.0 - system->acc.z;
 }
 
 
