@@ -39,6 +39,14 @@ void KobukiNavigationStatechart(
 	);
 
 typedef struct {
+	const double inclineDetected;
+	const double flatDetected;
+	const double inclineIsNotForward;
+	const double inclineIsForward;
+	const double distanceAReached;
+}thresholds_t;
+
+typedef struct {
 	variables_t *			    variables;
 	const int32_t 				netDistance;
 	const int32_t 				netAngle;
@@ -46,6 +54,8 @@ typedef struct {
 	const accelerometer_t		acc;
 	const double				incline;
 	const double				angle;
+	const bool					isSimulator;
+	const thresholds_t *		thresholds;
 } system_t;
 
 typedef struct {
@@ -80,7 +90,6 @@ typedef struct state_controller{
 	const action_t * initialActions;
 }state_controller_t;
 
-
 void controlSequence(const state_controller_t * controller, const system_t * system);
 
 void resetAll(const system_t * system);
@@ -95,8 +104,8 @@ void setObstacleLocCentre(const system_t * system);
 void resetDistance(const system_t * system);
 void resetAngle(const system_t * system);
 void zeroAxes(const system_t * system);
-double calculateIncline(const accelerometer_t * acc);
-double calculateAngle(const accelerometer_t * acc);
+double calculateIncline(const accelerometer_t * acc, const accelerometer_t * offset, const bool isSimulator);
+double calculateAngle(const accelerometer_t * acc, const accelerometer_t * offset, const bool isSimulator);
 void stop(const system_t * system);
 void forward(const system_t * system);
 void reverse(const system_t * system);
@@ -115,6 +124,7 @@ bool flatDetected(const system_t * system);
 
 bool resetButtonPressed(const system_t * system);
 bool pauseButtonPressed(const system_t * system);
+bool pauseButtonReleased(const system_t * system);
 
 bool obstacleDetected(const system_t * system);
 bool obstacleDetectedLeft(const system_t * system);
@@ -140,7 +150,9 @@ state_t turnBackState;
 state_t driveAvoidState;
 
 //pause states
-state_t pauseState;
-state_t unPauseState;
+state_t pauseWaitButtonReleaseState;
+state_t unpauseWaitButtonReleaseState;
+state_t unpauseWaitButtonPressState;
+state_t runState;
 
 #endif // IROBOTNAVIGATIONSTATECHART_H_
