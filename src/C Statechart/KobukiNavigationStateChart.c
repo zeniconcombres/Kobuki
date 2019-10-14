@@ -19,20 +19,19 @@ state_t groundState = {
 };
 
 state_t ascendingState = {
-	TRANSITIONS(3) {
-		{&flatDetected, &topState},
-		{&inclineIsLeft, &adjustAscState, ACTIONS(1){ {&rotateLeft} }},
-		{&inclineIsRight, &adjustAscState, ACTIONS(1){ {&rotateRight} }}
+	TRANSITIONS(2) {
+		{&flatDetected, &topState, ACTIONS(1){ {&forward} }},
+		{&triggerTrue, &ascendingState, ACTIONS(1){ {&ascendHill} }}
 	},
 	NULL
 };
 
-state_t adjustAscState = {
-	TRANSITIONS(1) {
-		{&inclineIsFoward, &ascendingState, ACTIONS(1){ {&forward}} }
-	},
-	NULL
-};
+//state_t adjustAscState = {
+//	TRANSITIONS(1) {
+//		{&inclineIsFoward, &ascendingState, ACTIONS(1){ {&forward}} }
+//	},
+//	NULL
+//};
 
 state_t topState = {
 	TRANSITIONS(1) {
@@ -42,20 +41,19 @@ state_t topState = {
 };
 
 state_t descendingState = {
-	TRANSITIONS(3) {
+	TRANSITIONS(2) {
 		{&flatDetected, &endState, ACTIONS(1){ {&resetAll} } },
-		{&inclineIsLeft, &adjustDesState, ACTIONS(1){ {&rotateLeft} }},
-		{&inclineIsRight, &adjustDesState, ACTIONS(1){ {&rotateRight} } }
+		{&triggerTrue, &descendingState, ACTIONS(1){ {&descendHill} } }
 	},
 	NULL
 };
 
-state_t adjustDesState = {
-	TRANSITIONS(1) {
-		{&inclineIsFoward, &descendingState, ACTIONS(1){ {&forward}} }
-	},
-	NULL
-};
+//state_t adjustDesState = {
+//	TRANSITIONS(1) {
+//		{&inclineIsFoward, &descendingState, ACTIONS(1){ {&forward}} }
+//	},
+//	NULL
+//};
 
 state_t endState = {
 	0,
@@ -66,7 +64,7 @@ state_t endState = {
 state_controller_t hillStateController = {
 	&groundState,
 	NULL,
-	{ STOP, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+	{ STOP, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 	ACTIONS(2) { {&forward}, {&zeroAxes} }
 };
 
@@ -112,7 +110,7 @@ state_t driveAvoidState = {
 state_controller_t avoidanceController = {
 	&driveState,
 	NULL,
-	{ STOP, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+	{ STOP, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 	ACTIONS(1) { {&forward} }
 };
 
@@ -148,13 +146,14 @@ state_t unpauseWaitButtonReleaseState = {
 state_controller_t mainController = {
 	&unpauseWaitButtonPressState,
 	NULL,
-	{STOP, 0, 0, CENTRE, { 0.0, 0.0, 0.0 } },
+	{STOP, 0, 0, 0, CENTRE, { 0.0, 0.0, 0.0 } },
 	NULL
 };
 
 
 variables_t variables = {
 	STOP,
+	0,
 	0,
 	0,
 	CENTRE,
@@ -203,7 +202,7 @@ void KobukiNavigationStatechart(
 	controlSequence(&mainController, &system);
 
 	//set wheel speeds
-	drive(variables.driveMode, pRightWheelSpeed, pLeftWheelSpeed);
+	drive(variables.driveMode, pRightWheelSpeed, pLeftWheelSpeed, variables.turnPct);
 }
 
 
@@ -211,7 +210,8 @@ void controlSequence(state_controller_t * controller, const system_t * system)
 {
 	if (controller->currentState == NULL)
 	{
-		for (int j = 0; j < controller->numActions; j++)
+		int j;
+		for (j = 0; j < controller->numActions; j++)
 		{
 			controller->initialActions[j].actionFunc(system);
 		}
@@ -227,12 +227,14 @@ void controlSequence(state_controller_t * controller, const system_t * system)
 	{		
 		controlSequence(current_state->nestedStateController, system);
 	}
-	for (int i = 0; i < current_state->numTransitions; i++)
+	int i;
+	for (i = 0; i < current_state->numTransitions; i++)
 	{
 		if (current_state->transitions[i].triggerFunc(system))
 		{
 			const transition_t transition = current_state->transitions[i];
-			for (int j = 0; j < transition.numActions; j++)
+			int j;
+			for (j = 0; j < transition.numActions; j++)
 			{
 				transition.actions[j].actionFunc(system);
 			}
@@ -265,6 +267,11 @@ void orientStart()
 void changeState()
 {
 
+}
+
+bool triggerTrue(const system_t * system)
+{
+	return true;
 }
 
 bool distanceReached(const system_t * system)
@@ -442,11 +449,21 @@ void zeroAxes(const system_t * system)
 	system->variables->offsets.z = 1.0 - system->acc.z;
 }
 
-
-
-void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL)
+void ascendHill(const system_t * system)
 {
-	const int16_t speed = 100;
+	system->variables->driveMode = ARC;
+	system->variables->turnPct = -system->angle/M_PI;
+}
+
+void descendHill(const system_t * system)
+{
+	system->variables->driveMode = ARC;
+	system->variables->turnPct = system->angle / M_PI;
+}
+
+void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL, double turnPct)
+{
+	const int16_t speed = 150;
 	int16_t speedR = 0;
 	int16_t speedL = 0;
 	switch (driveMode)
@@ -464,6 +481,10 @@ void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL)
 	case ROTATE_RIGHT:
 		speedR = -speed;
 		speedL = speed;
+		break;
+	case ARC:
+		speedR = speed * (1.0 + turnPct);
+		speedL = speed * (1.0 - turnPct);
 		break;
 	case STOP:
 	default:
