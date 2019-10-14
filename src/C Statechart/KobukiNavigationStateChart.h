@@ -9,6 +9,7 @@ typedef enum {
 	BACKWARD,
 	ROTATE_RIGHT,
 	ROTATE_LEFT,
+	ARC,
 	STOP
 }drive_mode_t;
 
@@ -20,6 +21,7 @@ typedef enum {
 
 typedef struct {
 	drive_mode_t driveMode;
+	double		 turnPct;
 	int32_t		 distance;
 	int32_t      angle;
 	obstacle_loc_t obstacleLoc;
@@ -113,7 +115,10 @@ void rotateLeft(const system_t * system);
 void rotateRight(const system_t * system);
 void rotateToAvoid(const system_t * system);
 void rotateToOrig(const system_t * system);
+void ascendHill(const system_t * system);
+void descendHill(const system_t * system);
 
+bool triggerTrue(const system_t * system);
 bool angleReached(const system_t * system);
 bool distanceReached(const system_t * system);
 bool inclineIsRight(const system_t * system);
@@ -131,7 +136,7 @@ bool obstacleDetectedLeft(const system_t * system);
 bool obstacleDetectedRight(const system_t * system);
 
 
-void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL);
+void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL, double turnPct);
 
 //hill states
 state_t groundState;
