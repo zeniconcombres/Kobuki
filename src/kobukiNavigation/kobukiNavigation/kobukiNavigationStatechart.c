@@ -124,7 +124,7 @@ state_t runState = {
 };
 
 state_t pauseWaitButtonReleaseState = {
-	TRANSITIONS(2) {
+	TRANSITIONS(1) {
 		{&pauseButtonReleased, &unpauseWaitButtonPressState},
 	},
 	NULL
