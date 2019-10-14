@@ -116,23 +116,37 @@ state_controller_t avoidanceController = {
 	ACTIONS(1) { {&forward} }
 };
 
-state_t unPauseState = {
-	TRANSITIONS(1){ 
-		{&pauseButtonPressed, &pauseState, ACTIONS(1){ {&stop} } }
+state_t runState = {
+	TRANSITIONS(1) {
+		{&pauseButtonPressed, &pauseWaitButtonReleaseState, ACTIONS(1){ {&stop} } }
 	},
 	&avoidanceController,
 };
 
-state_t pauseState = {
-	TRANSITIONS(2){		
-		{&pauseButtonPressed, &unPauseState},
-		{&resetButtonPressed, &pauseState, ACTIONS(1){ {&resetAll} }}
+state_t pauseWaitButtonReleaseState = {
+	TRANSITIONS(2) {
+		{&pauseButtonReleased, &unpauseWaitButtonPressState},
 	},
 	NULL
 };
 
+state_t unpauseWaitButtonPressState = {
+	TRANSITIONS(1) {
+		{&pauseButtonPressed, &unpauseWaitButtonReleaseState},
+	},
+	NULL
+};
+
+state_t unpauseWaitButtonReleaseState = {
+	TRANSITIONS(1) {
+		{&pauseButtonReleased, &runState},
+	},
+	NULL
+};
+
+//		{ &resetButtonPressed, &pauseState, ACTIONS(1){ {&resetAll} } }
 state_controller_t mainController = {
-	&pauseState,
+	&unpauseWaitButtonPressState,
 	NULL,
 	{STOP, 0, 0, CENTRE, { 0.0, 0.0, 0.0 } },
 	NULL
@@ -145,6 +159,22 @@ variables_t variables = {
 	0,
 	CENTRE,
 	{0.0, 0.0, 0.0}
+};
+
+thresholds_t simThresholds = {
+	0.07,	// inclineDetected
+	0.04,	// flatDetected
+	0.25,	// inclineIsNotForward
+	0.1,	// inclineIsForward
+	100		// distanceReached
+};
+
+thresholds_t realThresholds = {
+	0.2,	// inclineDetected
+	0.1,	// flatDetected
+	0.15,	// inclineIsNotForward
+	0.1,	// inclineIsForward
+	100		// distanceReached
 };
 
 #define DEG_PER_RAD            (180.0 / M_PI)        // degrees per radian
@@ -160,8 +190,16 @@ void KobukiNavigationStatechart(
                                 int16_t * const               pLeftWheelSpeed,
                                 const bool                    isSimulator
                                 ){
-
-	const system_t system = { &variables, netDistance, netAngle, sensors, accelAxes, calculateIncline(&accelAxes, &variables.offsets), calculateAngle(&accelAxes, &variables.offsets)};
+	const thresholds_t * thresholds;
+	if (isSimulator)
+	{
+		thresholds = &simThresholds;
+	}
+	else
+	{
+		thresholds = &realThresholds;
+	}
+	const system_t system = { &variables, netDistance, netAngle, sensors, accelAxes, calculateIncline(&accelAxes, &variables.offsets, isSimulator), calculateAngle(&accelAxes, &variables.offsets, isSimulator), isSimulator, thresholds };
 	controlSequence(&mainController, &system);
 
 	//set wheel speeds
@@ -250,6 +288,11 @@ bool resetButtonPressed(const system_t * system)
 bool pauseButtonPressed(const system_t * system)
 {
 	return system->sensors.buttons.B0;
+}
+
+bool pauseButtonReleased(const system_t * system)
+{
+	return !pauseButtonPressed(system);
 }
 
 bool obstacleDetectedLeft(const system_t * system)
@@ -350,30 +393,30 @@ void stop(const system_t * system)
 
 bool inclineIsLeft(const system_t * system)
 {
-	return system->angle < -0.25;
+	return system->angle < -system->thresholds->inclineIsNotForward;
 }
 
 bool inclineIsRight(const system_t * system)
 {
-	return system->angle > 0.25;
+	return system->angle > system->thresholds->inclineIsNotForward;
 }
 
 bool inclineIsFoward(const system_t * system)
 {
-	return fabs(system->angle) < 0.1;
+	return fabs(system->angle) < system->thresholds->inclineIsForward;
 }
 
 bool inclineDetected(const system_t * system)
 {
-	return fabs(system->incline) > 0.07;
+	return fabs(system->incline) > system->thresholds->inclineDetected;
 }
 
 bool flatDetected(const system_t * system)
 {
-	return fabs(system->incline) < 0.04;
+	return fabs(system->incline) < system->thresholds->flatDetected;
 }
 
-double calculateIncline(const accelerometer_t * acc, const accelerometer_t * offset)
+double calculateIncline(const accelerometer_t * acc, const accelerometer_t * offset, const bool isSimulator)
 {
 	double x = acc->x - offset->x;
 	double y = acc->y - offset->y;
@@ -381,11 +424,15 @@ double calculateIncline(const accelerometer_t * acc, const accelerometer_t * off
 	return acos(z / (sqrt(x*x + y*y + z*z)));
 }
 
-double calculateAngle(const accelerometer_t * acc, const accelerometer_t * offset)
+double calculateAngle(const accelerometer_t * acc, const accelerometer_t * offset, const bool isSimulator)
 {
 	double x = acc->x - offset->x;
 	double y = acc->y - offset->y;
-	return atan2(x, y);
+	if (isSimulator)
+	{
+		return atan2(x, y);
+	}
+	return atan2(-y, x);
 }
 
 void zeroAxes(const system_t * system)
