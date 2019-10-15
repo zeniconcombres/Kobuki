@@ -23,7 +23,7 @@ typedef struct {
 	drive_mode_t driveMode;
 	double		 turnPct;
 	int32_t		 distance;
-	int32_t      angle;
+	double       angle;
 	obstacle_loc_t obstacleLoc;
 	accelerometer_t offsets;
 }variables_t;
@@ -38,7 +38,7 @@ void KobukiNavigationStatechart(
 	int16_t * const 			pRightWheelSpeed,
 	int16_t * const 			pLeftWheelSpeed,
 	const bool					isSimulator
-	);
+);
 
 typedef struct {
 	const double inclineDetected;
@@ -75,16 +75,17 @@ typedef struct {
 	const action_t * actions;
 } transition_t;
 
-typedef struct state{
+typedef struct state {
 	//void (*onStart)();
 	//void (*eachRound)();
 	//void * stateData;
+	char* name;
 	size_t numTransitions;
 	transition_t* transitions;
 	struct state_controller * nestedStateController;
 }state_t;
 
-typedef struct state_controller{
+typedef struct state_controller {
 	const state_t * startState;
 	state_t * currentState;
 	variables_t  variables;
@@ -92,7 +93,7 @@ typedef struct state_controller{
 	const action_t * initialActions;
 }state_controller_t;
 
-void controlSequence(const state_controller_t * controller, const system_t * system);
+void controlSequence(state_controller_t * controller, const system_t * system);
 
 void resetAll(const system_t * system);
 void resetController(state_controller_t * controller);
