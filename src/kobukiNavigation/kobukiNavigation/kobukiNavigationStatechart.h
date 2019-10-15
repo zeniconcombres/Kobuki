@@ -27,7 +27,7 @@ typedef struct {
 	drive_mode_t driveMode;
 	double		 turnPct;
 	int32_t		 distance;
-	int32_t      angle;
+	double       angle;
 	obstacle_loc_t obstacleLoc;
 	accelerometer_t offsets;
 }variables_t;
@@ -83,6 +83,7 @@ typedef struct state{
 	//void (*onStart)();
 	//void (*eachRound)();
 	//void * stateData;
+	char* name;
 	size_t numTransitions;
 	transition_t* transitions;
 	struct state_controller * nestedStateController;
@@ -96,7 +97,7 @@ typedef struct state_controller{
 	const action_t * initialActions;
 }state_controller_t;
 
-void controlSequence(const state_controller_t * controller, const system_t * system);
+void controlSequence(state_controller_t * controller, const system_t * system);
 
 void resetAll(const system_t * system);
 void resetController(state_controller_t * controller);

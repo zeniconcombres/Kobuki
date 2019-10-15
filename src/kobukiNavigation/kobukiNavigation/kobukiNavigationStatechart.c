@@ -7,11 +7,13 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#define M_PI       3.14159265358979323846   // pi
 
 #define TRANSITIONS(num) num, (transition_t[num])
 #define ACTIONS(num)  num, (action_t[num])
 
 state_t groundState = {
+	"Ground",
 	TRANSITIONS(1) {
 		{&inclineDetected, &ascendingState}
 	},
@@ -19,6 +21,7 @@ state_t groundState = {
 };
 
 state_t ascendingState = {
+	"Ascending",
 	TRANSITIONS(2) {
 		{&flatDetected, &topState, ACTIONS(1){ {&forward} }},
 		{&triggerTrue, &ascendingState, ACTIONS(1){ {&ascendHill} }}
@@ -34,6 +37,7 @@ state_t ascendingState = {
 //};
 
 state_t topState = {
+	"Top",
 	TRANSITIONS(1) {
 		{&inclineDetected, &descendingState}
 	},
@@ -41,8 +45,9 @@ state_t topState = {
 };
 
 state_t descendingState = {
+	"Descending",
 	TRANSITIONS(2) {
-		{&flatDetected, &endState, ACTIONS(1){ {&resetAll} } },
+		{&flatDetected, &endState, ACTIONS(2){ {&resetAll}, {&stop} } },
 		{&triggerTrue, &descendingState, ACTIONS(1){ {&descendHill} } }
 	},
 	NULL
@@ -56,6 +61,7 @@ state_t descendingState = {
 //};
 
 state_t endState = {
+	"End",
 	0,
 	NULL,
 	NULL
@@ -70,6 +76,7 @@ state_controller_t hillStateController = {
 
 
 state_t driveState = {
+	"Drive",
 	TRANSITIONS(3){
 		{&obstacleDetectedLeft,  &reverseState, ACTIONS(3) { {&reverse}, {&resetDistance}, {&setObstacleLocLeft} } },
 		{&obstacleDetectedRight, &reverseState, ACTIONS(3) { {&reverse}, {&resetDistance}, {&setObstacleLocRight} } },
@@ -79,6 +86,7 @@ state_t driveState = {
 };
 
 state_t reverseState = {
+	"Reverse",
 	TRANSITIONS(1){
 		{&distanceReached, &turnAwayState, ACTIONS(2) { {&rotateToAvoid}, {&resetAngle} } }
 	},
@@ -86,6 +94,7 @@ state_t reverseState = {
 };
 
 state_t turnAwayState = {
+	"TurnAway",
 	TRANSITIONS(1){
 		{&angleReached, &driveAvoidState, ACTIONS(2) { {&forward}, {&resetDistance} } }
 	},
@@ -93,6 +102,7 @@ state_t turnAwayState = {
 };
 
 state_t turnBackState = {
+	"TurnBack",
 	TRANSITIONS(1){
 		{&angleReached, &driveState, ACTIONS(2) { {&forward}, {&resetDistance} } }
 	},
@@ -100,6 +110,7 @@ state_t turnBackState = {
 };
 
 state_t driveAvoidState = {
+	"DriveAvoid",
 	TRANSITIONS(2) {
 		{&distanceReached, &turnBackState, ACTIONS(2) { {&rotateToOrig},{ &resetAngle } } },
 		{&obstacleDetected, &reverseState, ACTIONS(2) { {&reverse}, {&resetDistance} } } //TODO: define behaviour when find a corner
@@ -115,6 +126,7 @@ state_controller_t avoidanceController = {
 };
 
 state_t runState = {
+	"Run",
 	TRANSITIONS(1) {
 		{&pauseButtonPressed, &pauseWaitButtonReleaseState, ACTIONS(1){ {&stop} } }
 	},
@@ -122,6 +134,7 @@ state_t runState = {
 };
 
 state_t pauseWaitButtonReleaseState = {
+	"PauseWaitButtonRelease",
 	TRANSITIONS(1) {
 		{&pauseButtonReleased, &unpauseWaitButtonPressState},
 	},
@@ -129,6 +142,7 @@ state_t pauseWaitButtonReleaseState = {
 };
 
 state_t unpauseWaitButtonPressState = {
+	"UnpauseWaitButtonPress",
 	TRANSITIONS(1) {
 		{&pauseButtonPressed, &unpauseWaitButtonReleaseState},
 	},
@@ -136,6 +150,7 @@ state_t unpauseWaitButtonPressState = {
 };
 
 state_t unpauseWaitButtonReleaseState = {
+	"UnpauseWaitButtonRelease",
 	TRANSITIONS(1) {
 		{&pauseButtonReleased, &runState},
 	},
@@ -170,7 +185,7 @@ thresholds_t simThresholds = {
 
 thresholds_t realThresholds = {
 	0.2,	// inclineDetected
-	0.1,	// flatDetected
+	0.15,	// flatDetected
 	0.15,	// inclineIsNotForward
 	0.1,	// inclineIsForward
 	100		// distanceReached
@@ -198,9 +213,16 @@ void KobukiNavigationStatechart(
 	{
 		thresholds = &realThresholds;
 	}
-	const system_t system = { &variables, netDistance, netAngle, sensors, accelAxes, calculateIncline(&accelAxes, &variables.offsets, isSimulator), calculateAngle(&accelAxes, &variables.offsets, isSimulator), isSimulator, thresholds };
+	const system_t system = {	&variables,
+								netDistance,
+								netAngle,
+								sensors,
+								accelAxes,
+								calculateIncline(&accelAxes, &variables.offsets, isSimulator),
+								calculateAngle(&accelAxes, &variables.offsets, isSimulator),
+								isSimulator,
+								thresholds };
 	controlSequence(&mainController, &system);
-
 	//set wheel speeds
 	drive(variables.driveMode, pRightWheelSpeed, pLeftWheelSpeed, variables.turnPct);
 }
@@ -238,6 +260,8 @@ void controlSequence(state_controller_t * controller, const system_t * system)
 			{
 				transition.actions[j].actionFunc(system);
 			}
+			printf("New State %s \n", transition.newState->name);
+			printf("Angle %.2lf\n", system->angle);
 			controller->currentState = transition.newState;
 			break;
 		}
@@ -305,15 +329,15 @@ bool pauseButtonReleased(const system_t * system)
 bool obstacleDetectedLeft(const system_t * system)
 {
 	return	system->sensors.cliffLeft					||
-			system->sensors.bumps_wheelDrops.bumpLeft	||
-			system->sensors.bumps_wheelDrops.wheeldropLeft;
+			system->sensors.bumps_wheelDrops.bumpLeft;//	||
+			//system->sensors.bumps_wheelDrops.wheeldropLeft;
 }
 
 bool obstacleDetectedRight(const system_t * system)
 {
 	return	system->sensors.cliffRight					||
-			system->sensors.bumps_wheelDrops.bumpRight	||
-			system->sensors.bumps_wheelDrops.wheeldropRight;
+			system->sensors.bumps_wheelDrops.bumpRight;//	||
+			//system->sensors.bumps_wheelDrops.wheeldropRight;
 }
 
 bool obstacleDetected(const system_t * system)
@@ -458,12 +482,20 @@ void ascendHill(const system_t * system)
 void descendHill(const system_t * system)
 {
 	system->variables->driveMode = ARC;
-	system->variables->turnPct = system->angle / M_PI;
+	double angle = system->angle;
+	if (angle>0)
+	{
+		system->variables->turnPct = -(angle-M_PI) / M_PI;
+	}
+	else
+	{
+		system->variables->turnPct = -(angle+M_PI) / M_PI;
+	}
 }
 
 void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL, double turnPct)
 {
-	const int16_t speed = 150;
+	const int16_t speed = 200;
 	int16_t speedR = 0;
 	int16_t speedL = 0;
 	switch (driveMode)
@@ -493,4 +525,3 @@ void drive(drive_mode_t driveMode, int16_t * pSpeedR, int16_t * pSpeedL, double 
 	*pSpeedR = speedR;
 	*pSpeedL = speedL;
 }
-
