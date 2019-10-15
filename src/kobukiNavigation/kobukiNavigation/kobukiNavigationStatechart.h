@@ -49,7 +49,8 @@ typedef struct {
 	const double flatDetected;
 	const double inclineIsNotForward;
 	const double inclineIsForward;
-	const double distanceAReached;
+	const double distanceReachedReverse;
+	const double distanceReached;
 }thresholds_t;
 
 typedef struct {
@@ -125,6 +126,7 @@ void descendHill(const system_t * system);
 
 bool triggerTrue(const system_t * system);
 bool angleReached(const system_t * system);
+bool distanceReachedReverse(const system_t * system);
 bool distanceReached(const system_t * system);
 bool inclineIsRight(const system_t * system);
 bool inclineIsLeft(const system_t * system);

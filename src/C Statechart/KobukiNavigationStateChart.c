@@ -87,7 +87,7 @@ state_t driveState = {
 state_t reverseState = {
 	"Reverse",
 	TRANSITIONS(1){
-		{&distanceReached, &turnAwayState, ACTIONS(2) { {&rotateToAvoid},{ &resetAngle } } }
+		{&distanceReachedReverse, &turnAwayState, ACTIONS(2) { {&rotateToAvoid},{ &resetAngle } } }
 },
 NULL
 };
@@ -179,7 +179,8 @@ thresholds_t simThresholds = {
 	0.04,	// flatDetected
 	0.25,	// inclineIsNotForward
 	0.1,	// inclineIsForward
-	100		// distanceReached
+	100,	// distanceReachedReverse
+	100		// distanceReachedSide
 };
 
 thresholds_t realThresholds = {
@@ -187,7 +188,8 @@ thresholds_t realThresholds = {
 	0.15,	// flatDetected
 	0.15,	// inclineIsNotForward
 	0.1,	// inclineIsForward
-	100		// distanceReached
+	150,	// distanceReachedReverse
+	100		// distanceReachedSide
 };
 
 #define DEG_PER_RAD            (180.0 / M_PI)        // degrees per radian
@@ -299,7 +301,12 @@ bool triggerTrue(const system_t * system)
 
 bool distanceReached(const system_t * system)
 {
-	return abs(system->netDistance - system->variables->distance) > 100;
+	return abs(system->netDistance - system->variables->distance) > system->thresholds->distanceReached;
+}
+
+bool distanceReachedReverse(const system_t * system)
+{
+	return abs(system->netDistance - system->variables->distance) > system->thresholds->distanceReachedReverse;
 }
 
 
