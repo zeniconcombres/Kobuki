@@ -18,7 +18,6 @@ typedef enum {
 typedef enum {
 	LEFT,
 	CENTRE,
-    CENTREX,
 	RIGHT
 }obstacle_loc_t;
 
@@ -125,6 +124,8 @@ void rotateToOrig(const system_t * system);
 void ascendHill(const system_t * system);
 void descendHill(const system_t * system);
 
+void setCentreTurn(const system_t * system);
+
 bool obstacleDetectedinAvoid(const system_t * system);
 bool triggerTrue(const system_t * system);
 bool angleReached(const system_t * system);
@@ -162,6 +163,7 @@ state_t reverseState;
 state_t turnAwayState;
 state_t turnBackState;
 state_t driveAvoidState;
+state_t reverseCornerState;
 
 //pause states
 state_t pauseWaitButtonReleaseState;

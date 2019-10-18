@@ -113,9 +113,19 @@ state_t driveAvoidState = {
 	"DriveAvoid",
 	TRANSITIONS(2) {
 		{&distanceReached, &turnBackState, ACTIONS(2) { {&rotateToOrig},{ &resetAngle } } },
-		{ &obstacleDetectedinAvoid, &reverseState, ACTIONS(2) { {&reverse},{ &resetDistance } } }
+		//{ &obstacleDetectedinAvoid, &reverseState, ACTIONS(3) { {&reverse},{ &resetDistance }, { &setCentreTurn } } }
+		{ &obstacleDetected, &reverseCornerState, ACTIONS(3) { {&reverse},{ &resetDistance },{ &setCentreTurn } } }
+
         //TODO: define behaviour when find a corner
         // reverse + turn 180 + rotate back + if bumper center, turn other way.
+},
+NULL
+};
+
+state_t reverseCornerState = {
+	"ReverseCorner",
+	TRANSITIONS(1) {
+		{&distanceReachedReverse, &turnBackState, ACTIONS(2) { {&rotateToAvoid},{ &resetAngle } } },
 },
 NULL
 };
@@ -179,7 +189,7 @@ variables_t variables = {
 };
 
 thresholds_t simThresholds = {
-	0.07,	// inclineDetected
+	0.15,	// inclineDetected
 	0.04,	// flatDetected
 	0.25,	// inclineIsNotForward
 	0.1,	// inclineIsForward
@@ -316,16 +326,7 @@ bool distanceReachedReverse(const system_t * system)
 
 bool angleReached(const system_t * system)
 {
-    double turnaround; // angle to turn
-    if (system->variables->obstacleLoc == CENTREX){
-        turnaround = 180;
-        system->variables->obstacleLoc = CENTRE;
-        // change back to 90 deg for turning back
-    }
-    else {
-        turnaround = 90;
-    }
-    return abs(system->netAngle - system->variables->angle) > turnaround;
+    return abs(system->netAngle - system->variables->angle) > 90;
 }
 
 
@@ -369,14 +370,18 @@ bool obstacleDetected(const system_t * system)
 
 bool obstacleDetectedinAvoid(const system_t * system)
 {
-    system->variables->obstacleLoc = CENTREX;
-    system->variables->centreTurn = !(system->variables->centreTurn);
     // reversing turn direction
     return    obstacleDetectedLeft(system) ||
         obstacleDetectedRight(system) ||
         system->sensors.cliffCenter ||
         system->sensors.bumps_wheelDrops.bumpCenter;
 }
+
+void setCentreTurn(const system_t * system)
+{
+	system->variables->centreTurn = !(system->variables->centreTurn);
+}
+
 
 void setObstacleLocLeft(const system_t * system)
 {
