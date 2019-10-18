@@ -69,7 +69,7 @@ state_t endState = {
 state_controller_t hillStateController = {
 	&groundState,
 	NULL,
-{ STOP, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+{ STOP, 0, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 ACTIONS(2) { {&forward},{ &zeroAxes } }
 };
 
@@ -77,9 +77,10 @@ ACTIONS(2) { {&forward},{ &zeroAxes } }
 state_t driveState = {
 	"Drive",
 	TRANSITIONS(3){
-		{&obstacleDetectedLeft,  &reverseState, ACTIONS(3) { {&reverse},{ &resetDistance },{ &setObstacleLocLeft } } },
+		{ &obstacleDetectedLeft,  &reverseState, ACTIONS(3) { {&reverse},{ &resetDistance },{ &setObstacleLocLeft } } },
 		{ &obstacleDetectedRight, &reverseState, ACTIONS(3) { {&reverse},{ &resetDistance },{ &setObstacleLocRight } } },
-		{ &obstacleDetected,		 &reverseState, ACTIONS(3) { {&reverse},{ &resetDistance },{ &setObstacleLocCentre } } }
+		{ &obstacleDetected,      &reverseState, ACTIONS(3) { {&reverse},{ &resetDistance },{ &setObstacleLocCentre } } }
+        // Central bumper always turns left
 },
 &hillStateController
 };
@@ -112,7 +113,9 @@ state_t driveAvoidState = {
 	"DriveAvoid",
 	TRANSITIONS(2) {
 		{&distanceReached, &turnBackState, ACTIONS(2) { {&rotateToOrig},{ &resetAngle } } },
-		{ &obstacleDetected, &reverseState, ACTIONS(2) { {&reverse},{ &resetDistance } } } //TODO: define behaviour when find a corner
+		{ &obstacleDetectedinAvoid, &reverseState, ACTIONS(2) { {&reverse},{ &resetDistance } } }
+        //TODO: define behaviour when find a corner
+        // reverse + turn 180 + rotate back + if bumper center, turn other way.
 },
 NULL
 };
@@ -120,7 +123,7 @@ NULL
 state_controller_t avoidanceController = {
 	&driveState,
 	NULL,
-{ STOP, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+{ STOP, 0, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 ACTIONS(1) { {&forward} }
 };
 
@@ -160,7 +163,7 @@ NULL
 state_controller_t mainController = {
 	&unpauseWaitButtonPressState,
 	NULL,
-{ STOP, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+{ STOP, 0, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 NULL
 };
 
@@ -168,6 +171,7 @@ NULL
 variables_t variables = {
 	STOP,
 	0,
+    0,
 	0,
 	0,
 	CENTRE,
@@ -312,7 +316,16 @@ bool distanceReachedReverse(const system_t * system)
 
 bool angleReached(const system_t * system)
 {
-	return abs(system->netAngle - system->variables->angle) > 90;
+    const double turnaround; // angle to turn
+    if (system->variables->obstacleLoc == CENTREX){
+        turnaround = 180;
+        system->variables->obstacleLoc = CENTRE;
+        // change back to 90 deg for turning back
+    }
+    else {
+        turnaround = 90;
+    }
+    return abs(system->netAngle - system->variables->angle) > turnaround;
 }
 
 
@@ -354,6 +367,17 @@ bool obstacleDetected(const system_t * system)
 		system->sensors.bumps_wheelDrops.bumpCenter;
 }
 
+bool obstacleDetectedinAvoid(const system_t * system)
+{
+    system->variables->obstacleLoc = CENTREX;
+    system->variables->centreTurn = !(system->variables->centreTurn);
+    // reversing turn direction
+    return    obstacleDetectedLeft(system) ||
+        obstacleDetectedRight(system) ||
+        system->sensors.cliffCenter ||
+        system->sensors.bumps_wheelDrops.bumpCenter;
+}
+
 void setObstacleLocLeft(const system_t * system)
 {
 	system->variables->obstacleLoc = LEFT;
@@ -391,19 +415,22 @@ void reverse(const system_t * system)
 
 void rotateToAvoid(const system_t * system)
 {
-	if (system->variables->obstacleLoc == LEFT)
+	if (system->variables->obstacleLoc == LEFT
+        || system->variables->centreTurn)
 	{
 		rotateRight(system);
 	}
 	else
 	{
+        // needs bool parameter to determine previous avoid
 		rotateLeft(system);
 	}
 }
 
 void rotateToOrig(const system_t * system)
 {
-	if (system->variables->obstacleLoc == LEFT)
+	if (system->variables->obstacleLoc == LEFT
+        || system->variables->centreTurn)
 	{
 		rotateLeft(system);
 	}

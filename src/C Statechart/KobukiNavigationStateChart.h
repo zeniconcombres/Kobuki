@@ -16,12 +16,14 @@ typedef enum {
 typedef enum {
 	LEFT,
 	CENTRE,
+    CENTREX,
 	RIGHT
 }obstacle_loc_t;
 
 typedef struct {
 	drive_mode_t driveMode;
 	double		 turnPct;
+    bool         centreTurn; // default to 0 turn R
 	int32_t		 distance;
 	double       angle;
 	obstacle_loc_t obstacleLoc;
@@ -34,7 +36,7 @@ void KobukiNavigationStatechart(
 	const int32_t 				netDistance,
 	const int32_t 				netAngle,
 	const KobukiSensors_t		sensors,
-	const accelerometer_t			accelAxes,
+	const accelerometer_t		accelAxes,
 	int16_t * const 			pRightWheelSpeed,
 	int16_t * const 			pLeftWheelSpeed,
 	const bool					isSimulator
