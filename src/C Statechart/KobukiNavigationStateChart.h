@@ -125,6 +125,7 @@ void rotateToOrig(const system_t * system);
 void ascendHill(const system_t * system);
 void descendHill(const system_t * system);
 
+bool obstacleDetectedinAvoid(const system_t * system);
 bool triggerTrue(const system_t * system);
 bool angleReached(const system_t * system);
 bool distanceReachedReverse(const system_t * system);

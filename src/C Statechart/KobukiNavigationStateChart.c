@@ -316,7 +316,7 @@ bool distanceReachedReverse(const system_t * system)
 
 bool angleReached(const system_t * system)
 {
-    const double turnaround; // angle to turn
+    double turnaround; // angle to turn
     if (system->variables->obstacleLoc == CENTREX){
         turnaround = 180;
         system->variables->obstacleLoc = CENTRE;
