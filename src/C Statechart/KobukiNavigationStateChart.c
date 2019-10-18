@@ -69,7 +69,7 @@ state_t endState = {
 state_controller_t hillStateController = {
 	&groundState,
 	NULL,
-{ STOP, 0, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+{ STOP, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 ACTIONS(2) { {&forward},{ &zeroAxes } }
 };
 
@@ -133,7 +133,7 @@ NULL
 state_controller_t avoidanceController = {
 	&driveState,
 	NULL,
-{ STOP, 0, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+{ STOP, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 ACTIONS(1) { {&forward} }
 };
 
@@ -173,7 +173,7 @@ NULL
 state_controller_t mainController = {
 	&unpauseWaitButtonPressState,
 	NULL,
-{ STOP, 0, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
+{ STOP, 0, 0, 0, CENTRE,{ 0.0, 0.0, 0.0 } },
 NULL
 };
 
@@ -183,13 +183,12 @@ variables_t variables = {
 	0,
     0,
 	0,
-	0,
 	CENTRE,
 { 0.0, 0.0, 0.0 }
 };
 
 thresholds_t simThresholds = {
-	0.15,	// inclineDetected
+	0.07,	// inclineDetected
 	0.04,	// flatDetected
 	0.25,	// inclineIsNotForward
 	0.1,	// inclineIsForward
@@ -205,6 +204,8 @@ thresholds_t realThresholds = {
 	150,	// distanceReachedReverse
 	100		// distanceReachedSide
 };
+
+bool         centreTurn = false;    // default to 0 turn R
 
 #define DEG_PER_RAD            (180.0 / M_PI)        // degrees per radian
 #define RAD_PER_DEG            (M_PI / 180.0)        // radians per degree
@@ -326,7 +327,7 @@ bool distanceReachedReverse(const system_t * system)
 
 bool angleReached(const system_t * system)
 {
-    return abs(system->netAngle - system->variables->angle) > 90;
+    return abs(system->netAngle - system->variables->angle) >= 90;
 }
 
 
@@ -379,7 +380,7 @@ bool obstacleDetectedinAvoid(const system_t * system)
 
 void setCentreTurn(const system_t * system)
 {
-	system->variables->centreTurn = !(system->variables->centreTurn);
+	centreTurn = !(centreTurn);
 }
 
 
@@ -421,7 +422,7 @@ void reverse(const system_t * system)
 void rotateToAvoid(const system_t * system)
 {
 	if (system->variables->obstacleLoc == LEFT
-        || system->variables->centreTurn)
+        || centreTurn)
 	{
 		rotateRight(system);
 	}
@@ -435,7 +436,7 @@ void rotateToAvoid(const system_t * system)
 void rotateToOrig(const system_t * system)
 {
 	if (system->variables->obstacleLoc == LEFT
-        || system->variables->centreTurn)
+        || centreTurn)
 	{
 		rotateLeft(system);
 	}

@@ -25,12 +25,12 @@ typedef enum {
 typedef struct {
 	drive_mode_t driveMode;     // type of drive behaviour
 	double		 turnPct;       // turn percentage in ARC feedback
-    bool         centreTurn;    // default to 0 turn R
 	int32_t		 distance;      // target distance in drive
 	double       angle;         // target distance in rotate
 	obstacle_loc_t obstacleLoc; // detected obstacle location
 	accelerometer_t offsets;    // accelerometer setting to NULL at start
 }variables_t;
+
 
 /// Architecture-independent C Statechart.
 void KobukiNavigationStatechart(
