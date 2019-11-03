@@ -1,0 +1,109 @@
+% SETUP
+\documentclass[11pt]{article}
+\linespread{1.15}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx, amsmath, array, graphics, amssymb, epsfig, psfrag, geometry, alltt, subfiles, blindtext, enumitem,float,pdfpages,multicol,tabularx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{hyperref}
+%%%%%%%%%%%%%%  code listing
+\usepackage{listings}
+\usepackage{color} %red, green, blue, yellow, cyan, magenta, black, white
+\definecolor{mygreen}{RGB}{2,94,33} % color values Red, Green, Blue
+\definecolor{mylilas}{RGB}{170,55,241}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=magenta,      
+    urlcolor=blue,
+}
+\urlstyle{same}
+%Includes "References" in the table of contents
+\usepackage[nottoc]{tocbibind}
+
+% MATLAB code insert
+\lstset{language=Matlab,%
+    %basicstyle=\color{red},
+    breaklines=true,%
+    morekeywords={matlab2tikz},
+    keywordstyle=\color{blue},%
+    morekeywords=[2]{1}, keywordstyle=[2]{\color{black}},
+    identifierstyle=\color{black},%
+    stringstyle=\color{mylilas},
+    commentstyle=\color{mygreen},%
+    showstringspaces=false,%without this there will be a symbol in the places where there is a space
+    numbers=left,%
+    numberstyle={\tiny \color{black}},% size of the numbers
+    numbersep=9pt, % this defines how far the numbers are from the text
+    emph=[1]{for,end,break},emphstyle=[1]\color{black}, %some words to emphasise
+    %emph=[2]{word1,word2}, emphstyle=[2]{style},    
+}
+%%%%%%%%%%%%%%%%
+
+
+\geometry{a4paper, top = 20mm, bottom = 20mm, left = 15mm, right = 15mm}
+
+% Do we need a cover page?
+
+% Headers
+\pagestyle{fancy}
+\fancyhf{}
+\chead{ELEN90066 Embedded System Design - Final Report}
+\cfoot{\thepage}
+
+\begin{document}
+\includepdf{EngCSAss1.pdf}
+\clearpage
+\input{00Title.tex}
+
+% Title
+\begin{center}
+\textbf{\Large{Kobuki Obstacle Course Project - Final Report}}
+\end{center}
+
+\vspace{-0.5cm}
+\section*{Executive Summary}
+\vspace{-0.2cm} An extended hierarchical state machine of three levels was implemented to guide a Kobuki robot through an obstacle course whilst avoiding obstacles and then driving up and down a hill to stop at the finish line. Innovating on the given coding templates, states were constructed using structs and transitions and actions were achieved through function pointers. The simplicity and flexibility offered by using pointers resulted in a total of 10 states. The final obstacle course though was unsuccessful due to a key reachability flaw that was missed, the simulation and testing showed many benefits from the iterative and agile design methodology and code development choices.
+
+\setcounter{tocdepth}{2}
+\tableofcontents
+\thispagestyle{empty}
+
+%%% 20 page limit! %%%
+\clearpage
+\setcounter{page}{1}
+\input{01Intro.tex}
+\input{02System.tex}
+\input{03Design.tex}
+\input{04Testing.tex}
+\input{05Validation.tex}
+\input{06Discussion.tex}
+\input{07Conclusion.tex}
+
+\textcolor{red}{The report must contain (but is not limited to):\\
+• a complete FSM diagram (including pause states) of the robot algorithm using the nota- tion covered in the lectures. If you use an Extended state machine, or state refinements, you must show all states, variables and transitions\\
+• a basic description of the sensor data available to the myRIO and how it was used in your algorithm\\
+• your design procedure (this could include work from earlier workshops)\\
+• your testing procedure (this could include simulation data or screenshots)\\
+• your validation procedure (this could include reliability or reachability analyses)\\
+• the outcome of the run in the final workshop\\
+• a discussion section (how you applied knowledge from the lectures, what you would im- prove in the future)
+The report is to be no more than 20 pages in length. A marking rubric for the report will be available on LMS.
+}
+
+% Bibliography
+\clearpage
+\bibliographystyle{ieeetr}
+\bibliography{99Bibliography}
+% References will occur as they get cited
+
+% Appendix
+\clearpage
+\pagenumbering{roman}
+\renewcommand*{\thepage}{x.\roman{page}}
+\appendix
+\input{XAppendix.tex}
+\end{document}
